@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Inicio — Organizador de asistencia</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="card">
+    <h1>¡Funciona! 🎉</h1>
+    <p id="bienvenida" style="text-align:center; font-size:0.9rem; color:#5f6368;"></p>
+    <button id="btn-salir" type="button" style="margin-top:0.8rem; padding:0.6rem; background:#eee; color:#1a1a1a; border:none; border-radius:6px; cursor:pointer;">
+      Cerrar sesión
+    </button>
+  </div>
+
+  <script>
+    const usuarioGuardado = localStorage.getItem('usuario');
+
+    if (!usuarioGuardado) {
+      window.location.href = '/login.html';
+    } else {
+      const usuario = JSON.parse(usuarioGuardado);
+      document.getElementById('bienvenida').textContent =
+        `Bienvenido, ${usuario.nombre} ${usuario.apellido} (${usuario.email})`;
+    }
+
+    document.getElementById('btn-salir').addEventListener('click', () => {
+      localStorage.removeItem('usuario');
+      window.location.href = '/login.html';
+    });
+  </script>
+</body>
+</html>

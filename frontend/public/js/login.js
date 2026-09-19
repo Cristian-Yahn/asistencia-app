@@ -1,117 +1,107 @@
-const tabLogin = document.getElementById('tab-login');
-const tabRegistro = document.getElementById('tab-registro');
-const formLogin = document.getElementById('form-login');
-const formRegistro = document.getElementById('form-registro');
-const mensaje = document.getElementById('mensaje');
+const alerta = document.getElementById("alerta");
+const formLogin = document.getElementById("form-login");
+const formRegistro = document.getElementById("form-registro");
 
-function mostrarMensaje(texto, tipo) {
-  mensaje.textContent = texto;
-  mensaje.className = `mensaje ${tipo}`;
+function mostrarAlerta(texto, tipo) {
+    // tipo: 'danger' (rojo) o 'success' (verde), clases de Bootstrap
+    alerta.textContent = texto;
+    alerta.className = `alert alert-${tipo}`;
 }
 
-function limpiarMensaje() {
-  mensaje.className = 'mensaje';
-  mensaje.textContent = '';
+function limpiarAlerta() {
+    alerta.className = "alert d-none";
+    alerta.textContent = "";
 }
 
-function activarTab(tab) {
-  if (tab === 'login') {
-    tabLogin.classList.add('activo');
-    tabRegistro.classList.remove('activo');
-    formLogin.classList.remove('oculto');
-    formRegistro.classList.add('oculto');
-  } else {
-    tabRegistro.classList.add('activo');
-    tabLogin.classList.remove('activo');
-    formRegistro.classList.remove('oculto');
-    formLogin.classList.add('oculto');
-  }
-}
+// Al cambiar de pestaña por un clic del usuario se limpia la alerta anterior.
+// OJO: usamos 'click' en cada botón, no el evento 'shown.bs.tab' del contenedor —
+// ese evento también se dispara cuando cambiamos de pestaña por código (como
+// hacemos tras un registro exitoso), y ahí NO queremos borrar el mensaje de éxito.
+document.getElementById("tab-login-btn").addEventListener("click", limpiarAlerta);
+document.getElementById("tab-registro-btn").addEventListener("click", limpiarAlerta);
 
-tabLogin.addEventListener('click', () => {
-  activarTab('login');
-  limpiarMensaje();
+// ----- Login -----
+formLogin.addEventListener("submit", async e => {
+    e.preventDefault();
+    limpiarAlerta();
+
+    const email = document.getElementById("login-email").value;
+    const contrasena = document.getElementById("login-contrasena").value;
+
+    try {
+        const res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, contrasena }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            mostrarAlerta(data.error || "No se pudo iniciar sesión", "danger");
+            return;
+        }
+
+        localStorage.setItem("usuario", JSON.stringify(data.usuario));
+        window.location.href = "/index.html";
+    } catch (err) {
+        mostrarAlerta("No se pudo conectar con el servidor", "danger");
+    }
 });
 
-tabRegistro.addEventListener('click', () => {
-  activarTab('registro');
-  limpiarMensaje();
+// ----- Registro -----
+formRegistro.addEventListener("submit", async e => {
+    e.preventDefault();
+    limpiarAlerta();
+
+    const nombre = document.getElementById("reg-nombre").value;
+    const apellido = document.getElementById("reg-apellido").value;
+    const email = document.getElementById("reg-email").value;
+    const contrasena = document.getElementById("reg-contrasena").value;
+
+    try {
+        const res = await fetch("/api/auth/registro", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nombre, apellido, email, contrasena }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            mostrarAlerta(data.error || "No se pudo registrar", "danger");
+            return;
+        }
+
+        formRegistro.reset();
+        document.getElementById("login-email").value = email;
+
+        // Cambiar a la pestaña de login sin perder el mensaje de éxito
+        const tabLogin = new bootstrap.Tab(document.getElementById("tab-login-btn"));
+        tabLogin.show();
+        mostrarAlerta("Cuenta creada correctamente. Ahora podés iniciar sesión.", "success");
+    } catch (err) {
+        mostrarAlerta("No se pudo conectar con el servidor", "danger");
+    }
 });
 
-formLogin.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  limpiarMensaje();
+// ----- Olvidé mi contraseña -----
+document.getElementById("link-olvide").addEventListener("click", async () => {
+    limpiarAlerta();
+    const email = document.getElementById("login-email").value;
 
-  const email = document.getElementById('login-email').value;
-  const contrasena = document.getElementById('login-contrasena').value;
-
-  try {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, contrasena }),
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      mostrarMensaje(data.error || 'No se pudo iniciar sesión', 'error');
-      return;
+    if (!email) {
+        mostrarAlerta("Ingresá tu email arriba y volvé a hacer clic", "danger");
+        return;
     }
 
-    localStorage.setItem('usuario', JSON.stringify(data.usuario));
-    window.location.href = '/index.html';
-  } catch (err) {
-    mostrarMensaje('No se pudo conectar con el servidor', 'error');
-  }
-});
-
-formRegistro.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  limpiarMensaje();
-
-  const nombre = document.getElementById('reg-nombre').value;
-  const apellido = document.getElementById('reg-apellido').value;
-  const email = document.getElementById('reg-email').value;
-  const contrasena = document.getElementById('reg-contrasena').value;
-
-  try {
-    const res = await fetch('/api/auth/registro', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, apellido, email, contrasena }),
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      mostrarMensaje(data.error || 'No se pudo registrar', 'error');
-      return;
+    try {
+        const res = await fetch("/api/auth/pedir-cambio-contrasena", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        mostrarAlerta(data.mensaje, "success");
+    } catch (err) {
+        mostrarAlerta("No se pudo conectar con el servidor", "danger");
     }
-
-    mostrarMensaje('Cuenta creada correctamente. Ahora podés iniciar sesión.', 'ok');
-    formRegistro.reset();
-    document.getElementById('login-email').value = email;
-    activarTab('login');
-  } catch (err) {
-    mostrarMensaje('No se pudo conectar con el servidor', 'error');
-  }
-});
-
-document.getElementById('link-olvide').addEventListener('click', async () => {
-  const email = document.getElementById('login-email').value;
-  if (!email) {
-    mostrarMensaje('Ingresá tu email arriba y volvé a hacer clic', 'error');
-    return;
-  }
-
-  try {
-    const res = await fetch('/api/auth/pedir-cambio-contrasena', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    const data = await res.json();
-    mostrarMensaje(data.mensaje, 'ok');
-  } catch (err) {
-    mostrarMensaje('No se pudo conectar con el servidor', 'error');
-  }
 });

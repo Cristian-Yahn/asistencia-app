@@ -37,12 +37,14 @@ function renderizarCursos(cursos) {
         item.style.backgroundColor = "var(--bs-card-bg)";
         item.style.borderColor = "var(--bs-border-color)";
         item.style.color = "var(--bs-body-color)";
-        item.innerHTML = `
-      <span>${curso.nombre_curso}</span>
-      <span class="badge ${esProfesor ? "text-bg-primary" : "text-bg-secondary"}">
-        ${esProfesor ? "Profesor" : "Alumno"}
-      </span>
-    `;
+        const nombre = document.createElement("span");
+        nombre.textContent = curso.nombre_curso;
+
+        const badge = document.createElement("span");
+        badge.className = `badge ${esProfesor ? "text-bg-primary" : "text-bg-secondary"}`;
+        badge.textContent = esProfesor ? "Profesor" : "Alumno";
+
+        item.append(nombre, badge);
         listaCursos.appendChild(item);
     });
 }
